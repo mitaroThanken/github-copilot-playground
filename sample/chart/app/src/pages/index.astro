@@ -57,6 +57,7 @@
       //   count: number, // closedの累計
       // }
       const dailyClosedCount = [];
+      let totalClosedCount = 0;
       for (let date = startDate; compareAsc(date, endDate) <= 0; date = add(date, { days: 1 })) {
         const count = data.filter((item) => {
           if (item.closed === null) {
@@ -64,34 +65,41 @@
           }
           return isSameDay(new Date(item.closed), date);
         }).length;
+        totalClosedCount += count;
         dailyClosedCount.push({
           date: format(date, "yyyy-MM-dd"),
-          count,
+          totalClosedCount,
         });
       }
 
-      // チャートを描画する
+      // バーンアップチャートを描画する
       const ctx = document.createElement("canvas");
       document.body.appendChild(ctx);
       new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
           labels: dailyClosedCount.map((item) => item.date),
           datasets: [
             {
               label: "closed",
-              data: dailyClosedCount.map((item) => item.count),
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
-              borderColor: "rgba(255, 99, 132, 1)",
-              borderWidth: 1,
+              data: dailyClosedCount.map((item) => item.totalClosedCount),
+              borderColor: "rgb(255, 99, 132)",
+              backgroundColor: "rgb(255, 99, 132)",
+              fill: false,
             },
           ],
         },
         options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: "バーンアップチャート",
+            },
+          },
           scales: {
             y: {
-              beginAtZero: true,
-              max: data.length,
+              suggestedMax: data.length,
             },
           },
         },
