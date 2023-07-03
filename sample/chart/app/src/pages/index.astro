@@ -1,4 +1,30 @@
 ---
+/**
+ * Chart.jsを使ってバーンアップチャートを作成する
+ * - 元になるデータ
+ *   - 以下のようなJSON形式
+ *     ```
+ *     [
+ *       {
+ *         "id": 1,
+ *         "title": "Issue 1",
+ *         "description": "Issue 1 description",
+ *         "status": "todo",
+ *         "assignee": "John Doe",
+ *         "created": "2023-06-01",
+ *         "closed": null
+ *       }
+ *     ]
+ *     ```
+ *   - 以下からダウンロードする
+ *     - https://raw.githubusercontent.com/dzeyelid/github-copilot-playground/main/sample/chart/issues.json
+ * - チャートの期間は、2023/6/16から2023/6/30までとする
+ * - y軸
+ *   - 最大値はアイテムの個数とする
+ *   - 日付におけるclosedの累計の個数を示す
+ * - x軸
+ *   - 日付を示す  
+*/
 ---
 
 <html lang="en">
@@ -11,5 +37,65 @@
   </head>
   <body>
     <h1>Astro</h1>
+    <!-- チャートを描画する -->
+    <script>
+      import Chart from "chart.js/auto";
+      import { add, compareAsc, format, isSameDay } from "date-fns";
+
+      // データを取得する
+      const data = await fetch(
+        "https://raw.githubusercontent.com/dzeyelid/github-copilot-playground/main/sample/chart/issues.json"
+      ).then((res) => res.json());
+
+      // チャートの期間を設定する
+      const startDate = new Date("2023-06-16");
+      const endDate = new Date("2023-06-30");
+
+      // 期間中、日ごとに、開始時点からその日までのclosedの累計を計算する
+      // {
+      //   date: string, // 日付
+      //   count: number, // closedの累計
+      // }
+      const dailyClosedCount = [];
+      for (let date = startDate; compareAsc(date, endDate) <= 0; date = add(date, { days: 1 })) {
+        const count = data.filter((item) => {
+          if (item.closed === null) {
+            return false;
+          }
+          return isSameDay(new Date(item.closed), date);
+        }).length;
+        dailyClosedCount.push({
+          date: format(date, "yyyy-MM-dd"),
+          count,
+        });
+      }
+
+      // チャートを描画する
+      const ctx = document.createElement("canvas");
+      document.body.appendChild(ctx);
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: dailyClosedCount.map((item) => item.date),
+          datasets: [
+            {
+              label: "closed",
+              data: dailyClosedCount.map((item) => item.count),
+              backgroundColor: "rgba(255, 99, 132, 0.2)",
+              borderColor: "rgba(255, 99, 132, 1)",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: data.length,
+            },
+          },
+        },
+      });
+    </script>
   </body>
 </html>
